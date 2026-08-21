@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/config.php';
-header('Access-Control-Allow-Origin: http://localhost:5173');
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowedOrigins = array_filter(array_map('trim', explode(',', getenv('FRONTEND_ORIGINS') ?: 'http://localhost:5173,http://127.0.0.1:5173')));
+if (in_array($requestOrigin, $allowedOrigins, true)) header('Access-Control-Allow-Origin: ' . $requestOrigin);
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');

@@ -16,7 +16,7 @@ function db() {
 }
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        session_set_cookie_params(array('httponly' => true, 'samesite' => 'Lax'));
+        session_set_cookie_params(array('httponly' => true, 'secure' => true, 'samesite' => 'None'));
         session_start();
     }
 }

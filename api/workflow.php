@@ -1,0 +1,9 @@
+<?php
+require_once __DIR__.'/bootstrap.php'; $u=requireUser(); $d=requestData(); $action=$d['action']??$_GET['action']??''; $pdo=db();
+if (!in_array($action,['claim_task','reject_task','request_move'],true)) jsonResponse(['error'=>'Unknown workflow action'],404);
+if ($action==='request_move') jsonResponse(['error'=>'Use PUT /api/tasks.php for moves'],400);
+$id=(int)($d['task_id']??0); $s=$pdo->prepare('SELECT * FROM tasks WHERE id=?'); $s->execute([$id]); $task=$s->fetch(); if(!$task) jsonResponse(['error'=>'Task tapılmadı'],404);
+$roles=['istehsalat'=>'istehsalat_ustasi','cilalama'=>'cilalama_ustasi','boyalama'=>'boyalama_ustasi','anbar'=>'anbar_ustasi']; $target=$roles[$task['target_stage']]??null;
+if ($u['role']!=='manager' && $u['role']!==$target) jsonResponse(['error'=>'Bu bildiriş üçün icazəniz yoxdur'],403);
+if ($action==='claim_task') { $pdo->beginTransaction(); $s=$pdo->prepare("UPDATE tasks SET current_stage=target_stage,target_stage=NULL,approval_status='active',assigned_to=? WHERE id=? AND target_stage IS NOT NULL AND approval_status='pending_approval'"); $s->execute([$u['id'],$id]); if(!$s->rowCount()){ $pdo->rollBack(); jsonResponse(['error'=>'Bu sifariş artıq başqa usta tərəfindən qəbul edilib'],409); } $n=$pdo->prepare("INSERT INTO notifications(task_id,target_role,claimed_by_user_id,message,type) VALUES(?,?,?,?,'claimed')"); $n->execute([$id,$target,$u['id'],'Artıq '.$u['name'].' tərəfindən qəbul edildi']); $pdo->commit(); jsonResponse(['claimed'=>true]); }
+$reason=trim((string)($d['reason']??'')); $s=$pdo->prepare("UPDATE tasks SET target_stage=NULL,approval_status='active',rejection_reason=? WHERE id=? AND approval_status='pending_approval'"); $s->execute([$reason,$id]); $n=$pdo->prepare("INSERT INTO notifications(task_id,target_role,message,type) VALUES(?,?,?,'rejected')"); $n->execute([$id,$target,'Mərhələ keçidi rədd edildi: '.($reason?:'Səbəb göstərilmədi')]); jsonResponse(['rejected'=>true]);

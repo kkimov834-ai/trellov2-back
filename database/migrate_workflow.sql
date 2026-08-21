@@ -1,0 +1,15 @@
+USE taskflow;
+ALTER TABLE users MODIFY role ENUM('user','foreman','master','admin') NOT NULL DEFAULT 'user';
+ALTER TABLE tasks ADD COLUMN priority ENUM('Low','Medium','High','Urgent') NOT NULL DEFAULT 'Medium' AFTER status;
+ALTER TABLE tasks ADD COLUMN created_by INT UNSIGNED NULL AFTER assigned_to;
+ALTER TABLE tasks ADD COLUMN rejection_reason TEXT NULL AFTER created_by;
+ALTER TABLE tasks ADD COLUMN approved_by INT UNSIGNED NULL AFTER updated_at;
+ALTER TABLE tasks ADD COLUMN approved_at DATETIME NULL AFTER approved_by;
+ALTER TABLE tasks MODIFY status ENUM('todo','in_progress','done','Pending Approval','In Production','Rejected','Completed') NOT NULL DEFAULT 'Pending Approval';
+UPDATE tasks SET status='Pending Approval' WHERE status='todo';
+UPDATE tasks SET status='In Production' WHERE status='in_progress';
+UPDATE tasks SET status='Completed' WHERE status='done';
+ALTER TABLE tasks MODIFY status ENUM('Pending Approval','In Production','Rejected','Completed') NOT NULL DEFAULT 'Pending Approval';
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks_approver FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL;
+CREATE TABLE notifications (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id INT UNSIGNED NOT NULL, task_id INT UNSIGNED NULL, message VARCHAR(500) NOT NULL, type ENUM('approval_request','approved','rejected','system') NOT NULL DEFAULT 'system', is_read TINYINT(1) NOT NULL DEFAULT 0, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, CONSTRAINT fk_notifications_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE, INDEX idx_notifications_user (user_id, is_read, created_at)) ENGINE=InnoDB;

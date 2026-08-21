@@ -1,0 +1,1 @@
+<?php require_once __DIR__.'/bootstrap.php';$u=requireUser();$d=requestData();$s=$d['id']?db()->prepare('UPDATE notifications SET is_read=1 WHERE id=?'):db()->prepare("UPDATE notifications SET is_read=1 WHERE target_role IN (?, 'manager')");$s->execute($d['id']?[(int)$d['id']]:[$u['role']]);jsonResponse(['updated'=>true]);
